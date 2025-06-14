@@ -1,0 +1,226 @@
+import datetime
+from getpass import getpass
+
+# ========== CLASS UTAMA ==========
+class Karyawan:
+    def __init__(self, nip, nama, gaji_pokok, jabatan):
+        self.nip = nip
+        self.nama = nama
+        self.gaji_pokok = gaji_pokok
+        self.jabatan = jabatan
+        self.tunjangan_jabatan = self._hitung_tunjangan_jabatan()
+    
+    def _hitung_tunjangan_jabatan(self):
+        tunjangan = {
+            "Staff": 0.1,
+            "Supervisor": 0.2,
+            "Manager": 0.3,
+            "Direktur": 0.5
+        }.get(self.jabatan, 0)
+        return self.gaji_pokok * tunjangan
+    
+    def hitung_total_gaji(self):
+        return self.gaji_pokok + self.tunjangan_jabatan
+    
+    def info(self):
+        return (f"{self.nip} | {self.nama} | {self.jabatan} | "
+                f"Gaji: Rp {self.hitung_total_gaji():,.2f}")
+
+class KaryawanTetap(Karyawan):
+    def __init__(self, nip, nama, gaji_pokok, jabatan, tunjangan):
+        super().__init__(nip, nama, gaji_pokok, jabatan)
+        self.tunjangan = tunjangan
+    
+    def hitung_total_gaji(self):
+        return super().hitung_total_gaji() + self.tunjangan
+    
+    def info(self):
+        return f"[TETAP] {super().info()} + Tunjangan Rp {self.tunjangan:,.2f}"
+
+class KaryawanKontrak(Karyawan):
+    def __init__(self, nip, nama, gaji_pokok, jabatan, jumlah_proyek, honor_proyek):
+        super().__init__(nip, nama, gaji_pokok, jabatan)
+        self.jumlah_proyek = jumlah_proyek
+        self.honor_proyek = honor_proyek
+    
+    def hitung_total_gaji(self):
+        return super().hitung_total_gaji() + (self.jumlah_proyek * self.honor_proyek)
+    
+    def info(self):
+        return (f"[KONTRAK] {super().info()} + Proyek ({self.jumlah_proyek}x Rp {self.honor_proyek:,.2f})")
+
+# ========== SISTEM ABSENSI ==========
+class AbsensiSystem:
+    def __init__(self):
+        self.riwayat = {}  # Format: {nip: [(tanggal, jam_masuk, jam_lembur)]}
+    
+    def catat_absensi(self, nip):
+        today = datetime.date.today()
+        now = datetime.datetime.now().time()
+        
+        if nip not in self.riwayat:
+            self.riwayat[nip] = []
+        
+        self.riwayat[nip].append((today.strftime("%Y-%m-%d"), now.strftime("%H:%M"), "0"))
+        return True
+    
+    def catat_lembur(self, nip, jam_lembur):
+        today = datetime.date.today().strftime("%Y-%m-%d")
+        
+        if nip in self.riwayat:
+            for i, (tanggal, jam_masuk, _) in enumerate(self.riwayat[nip]):
+                if tanggal == today:
+                    self.riwayat[nip][i] = (tanggal, jam_masuk, str(jam_lembur))
+                    return True
+        return False
+
+# ========== MANAJEMEN FILE ==========
+def simpan_data(karyawan_list, absensi, filename="data_karyawan.txt"):
+    with open(filename, 'w') as f:
+        # Header
+        f.write("DATA KARYAWAN\n")
+        f.write("=============\n")
+        
+        # Data karyawan
+        f.write("\n[KARYAWAN]\n")
+        for karyawan in karyawan_list:
+            if isinstance(karyawan, KaryawanTetap):
+                f.write(f"TETAP|{karyawan.nip}|{karyawan.nama}|{karyawan.gaji_pokok}|"
+                        f"{karyawan.jabatan}|{karyawan.tunjangan}\n")
+            else:
+                f.write(f"KONTRAK|{karyawan.nip}|{karyawan.nama}|{karyawan.gaji_pokok}|"
+                        f"{karyawan.jabatan}|{karyawan.jumlah_proyek}|{karyawan.honor_proyek}\n")
+        
+        # Data absensi
+        f.write("\n[ABSENSI]\n")
+        for nip, records in absensi.riwayat.items():
+            for tanggal, jam_masuk, jam_lembur in records:
+                f.write(f"{nip}|{tanggal}|{jam_masuk}|{jam_lembur}\n")
+
+def muat_data(filename="data_karyawan.txt"):
+    karyawan_list = []
+    absensi = AbsensiSystem()
+    
+    try:
+        with open(filename, 'r') as f:
+            section = None
+            for line in f:
+                line = line.strip()
+                if line == "[KARYAWAN]":
+                    section = "KARYAWAN"
+                elif line == "[ABSENSI]":
+                    section = "ABSENSI"
+                elif line and section == "KARYAWAN":
+                    parts = line.split('|')
+                    if parts[0] == "TETAP":
+                        karyawan_list.append(KaryawanTetap(
+                            parts[1], parts[2], float(parts[3]), 
+                            parts[4], float(parts[5])
+                        ))  # Perhatikan indentasi dan kurung
+                    elif parts[0] == "KONTRAK":
+                        karyawan_list.append(KaryawanKontrak(
+                            parts[1], parts[2], float(parts[3]), 
+                            parts[4], int(parts[5]), float(parts[6])
+                        ))  # Perhatikan indentasi dan kurung
+                elif line and section == "ABSENSI":
+                    nip, tanggal, jam_masuk, jam_lembur = line.split('|')
+                    if nip not in absensi.riwayat:
+                        absensi.riwayat[nip] = []
+                    absensi.riwayat[nip].append((tanggal, jam_masuk, jam_lembur))
+    except FileNotFoundError:
+        pass
+    
+    return karyawan_list, absensi
+
+# ========== AUTENTIKASI ==========
+def login():
+    ADMIN_PASSWORD = "admin123"  # Password sederhana (produksi sebaiknya di-hash)
+    attempts = 3
+    
+    while attempts > 0:
+        password = getpass("Masukkan password admin: ")
+        if password == ADMIN_PASSWORD: 
+            return True
+        attempts -= 1
+        print(f"Password salah! Sisa percobaan: {attempts}")
+    
+    print("Akses ditolak!")
+    return False
+
+# ========== MAIN PROGRAM ==========
+def main():
+    if not login():
+        return
+    
+    karyawan_list, absensi = muat_data()
+    
+    while True:
+        print("\n=== SISTEM MANAJEMEN KARYAWAN ===")
+        print("1. Tambah Karyawan")
+        print("2. Absensi Harian")
+        print("3. Catat Lembur")
+        print("4. Lihat Daftar Karyawan")
+        print("5. Hitung Total Gaji")
+        print("6. Simpan & Keluar")
+        
+        choice = input("Pilih menu (1-6): ")
+        
+        if choice == "1":
+            print("\nJenis Karyawan:")
+            print("1. Karyawan Tetap")
+            print("2. Karyawan Kontrak")
+            jenis = input("Pilih jenis (1/2): ")
+            
+            nip = input("NIP: ")
+            nama = input("Nama: ")
+            gaji_pokok = float(input("Gaji Pokok: Rp "))
+            jabatan = input("Jabatan (Staff/Supervisor/Manager/Direktur): ")
+            
+            if jenis == "1":
+                tunjangan = float(input("Tunjangan Tetap: Rp "))
+                karyawan_list.append(KaryawanTetap(nip, nama, gaji_pokok, jabatan, tunjangan))
+            else:
+                jumlah_proyek = int(input("Jumlah Proyek: "))
+                honor_proyek = float(input("Honor per Proyek: Rp "))
+                karyawan_list.append(KaryawanKontrak(nip, nama, gaji_pokok, jabatan, jumlah_proyek, honor_proyek))
+            
+            print("Data karyawan berhasil ditambahkan!")
+        
+        elif choice == "2":
+            nip = input("Masukkan NIP: ")
+            if any(k.nip == nip for k in karyawan_list):
+                absensi.catat_absensi(nip)
+                print("Absensi berhasil dicatat")
+            else:
+                print("NIP tidak ditemukan")
+        
+        elif choice == "3":
+            nip = input("Masukkan NIP: ")
+            if any(k.nip == nip for k in karyawan_list):
+                jam = float(input("Jumlah Jam Lembur: "))
+                if absensi.catat_lembur(nip, jam):
+                    print("Lembur berhasil dicatat")
+                else:
+                    print("Belum ada absensi hari ini")
+            else:
+                print("NIP tidak ditemukan")
+        
+        elif choice == "4":
+            print("\n=== DAFTAR KARYAWAN ===")
+            for idx, karyawan in enumerate(karyawan_list, 1):
+                print(f"{idx}. {karyawan.info()}")
+        
+        elif choice == "5":
+            total = sum(k.hitung_total_gaji() for k in karyawan_list)
+            print(f"\nTotal Gaji Seluruh Karyawan: Rp {total:,.2f}")
+        
+        elif choice == "6":
+            simpan_data(karyawan_list, absensi)
+            print("Data berhasil disimpan. Sampai jumpa!")
+            break
+        
+        else:
+            print("Pilihan tidak valid!")
+
+if __name__ == "__main__":
+    main()

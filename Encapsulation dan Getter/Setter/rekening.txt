@@ -1,0 +1,7 @@
+Data Rekening aaa
+Saldo Terakhir: Rp 480,000.0
+
+Riwayat Transaksi:
+2025-06-14 21:54:24 | SETOR           | Rp  800,000.0 | Saldo: Rp 800,000.0
+2025-06-14 21:54:40 | TARIK           | Rp  200,000.0 | Saldo: Rp 600,000.0
+2025-06-14 21:54:53 | TRANSFER KELUAR | Rp  120,000.0 | Saldo: Rp 480,000.0
