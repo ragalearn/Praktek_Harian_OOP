@@ -1,7 +1,7 @@
-Data Rekening aaa
-Saldo Terakhir: Rp 480,000.0
+Data Rekening Raga Pangestu
+Saldo Terakhir: Rp 1,500,000.0
 
 Riwayat Transaksi:
-2025-06-14 21:54:24 | SETOR           | Rp  800,000.0 | Saldo: Rp 800,000.0
-2025-06-14 21:54:40 | TARIK           | Rp  200,000.0 | Saldo: Rp 600,000.0
-2025-06-14 21:54:53 | TRANSFER KELUAR | Rp  120,000.0 | Saldo: Rp 480,000.0
+2025-06-15 00:33:42 | SETOR           | Rp 2,500,000.0 | Saldo: Rp 2,500,000.0
+2025-06-15 00:33:51 | TARIK           | Rp  500,000.0 | Saldo: Rp 2,000,000.0
+2025-06-15 00:34:10 | TRANSFER KELUAR | Rp  500,000.0 | Saldo: Rp 1,500,000.0
